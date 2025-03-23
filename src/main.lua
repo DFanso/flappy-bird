@@ -26,12 +26,59 @@ local scrollX = 0
 local scrollSpeed = 60
 local difficulty = 1 -- Difficulty multiplier
 
+-- Cloud variables
+local clouds = {}
+local numClouds = 5
+
 -- Load game assets and initialize
 function love.load()
     love.graphics.setNewFont(20)
     math.randomseed(os.time())
+    
     -- Calculate spawn interval based on pipe distance and speed
     spawnInterval = pipeDistance / pipeSpeed
+    
+    -- Create cloud data
+    for i=1, numClouds do
+        local cloudType = love.math.random(1, 3)
+        table.insert(clouds, {
+            x = love.math.random(0, 800),
+            y = love.math.random(50, 200),
+            speed = love.math.random(15, 40),
+            size = love.math.random(50, 120) / 100,
+            type = cloudType
+        })
+    end
+end
+
+-- Generate a cloud shape
+function drawCloud(x, y, size, cloudType)
+    love.graphics.setColor(1, 1, 1, 0.9)
+    
+    if cloudType == 1 then
+        -- Cloud type 1 (puffy)
+        local baseSize = 30 * size
+        love.graphics.circle("fill", x, y, baseSize)
+        love.graphics.circle("fill", x + baseSize * 0.8, y - baseSize * 0.3, baseSize * 0.7)
+        love.graphics.circle("fill", x + baseSize * 0.8, y + baseSize * 0.3, baseSize * 0.6)
+        love.graphics.circle("fill", x - baseSize * 0.5, y, baseSize * 0.8)
+        love.graphics.circle("fill", x + baseSize * 1.5, y, baseSize * 0.7)
+    elseif cloudType == 2 then
+        -- Cloud type 2 (flat)
+        local width = 100 * size
+        local height = 35 * size
+        love.graphics.ellipse("fill", x, y, width/2, height/2)
+        love.graphics.ellipse("fill", x - width/3, y - height/4, width/4, height/3)
+        love.graphics.ellipse("fill", x + width/3, y - height/5, width/3, height/4)
+    else
+        -- Cloud type 3 (mixed)
+        local baseSize = 25 * size
+        love.graphics.circle("fill", x, y, baseSize)
+        love.graphics.circle("fill", x + baseSize, y, baseSize * 1.2)
+        love.graphics.circle("fill", x + baseSize * 2, y, baseSize * 0.9)
+        love.graphics.circle("fill", x + baseSize * 0.5, y - baseSize * 0.7, baseSize * 0.8)
+        love.graphics.circle("fill", x + baseSize * 1.5, y - baseSize * 0.5, baseSize)
+    end
 end
 
 -- Update game state
@@ -39,6 +86,18 @@ function love.update(dt)
     scrollX = scrollX - scrollSpeed * dt
     if scrollX <= -800 then
         scrollX = 0
+    end
+    
+    -- Update clouds
+    for i, cloud in ipairs(clouds) do
+        cloud.x = cloud.x - cloud.speed * dt
+        if cloud.x < -150 then
+            cloud.x = 850
+            cloud.y = love.math.random(50, 200)
+            cloud.speed = love.math.random(15, 40)
+            cloud.size = love.math.random(50, 120) / 100
+            cloud.type = love.math.random(1, 3)
+        end
     end
     
     if gameState == "playing" then
@@ -118,11 +177,10 @@ function love.draw()
     love.graphics.setColor(0.4, 0.7, 1)
     love.graphics.rectangle("fill", 0, 0, 800, 600)
     
-    -- Draw clouds (background)
-    love.graphics.setColor(1, 1, 1)
-    love.graphics.rectangle("fill", (scrollX % 800) + 100, 80, 120, 40)
-    love.graphics.rectangle("fill", (scrollX % 800) + 500, 120, 90, 30)
-    love.graphics.rectangle("fill", ((scrollX + 400) % 800) + 200, 100, 100, 35)
+    -- Draw clouds (now using the cloud drawing function)
+    for _, cloud in ipairs(clouds) do
+        drawCloud(cloud.x, cloud.y, cloud.size, cloud.type)
+    end
     
     -- Draw pipes
     love.graphics.setColor(0.2, 0.8, 0.2)
